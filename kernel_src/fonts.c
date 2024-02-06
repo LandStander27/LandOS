@@ -34,6 +34,7 @@ int renderc(int x, int y) {
 	}
 	dst.x = x*CHAR_WIDTH+5;
 	dst.y = y*CHAR_HEIGHT;
+	dst.fg = terminal_data[y*terminal_width+x].fg_color;
 
 	char s[2] = { terminal_data[y*terminal_width+x].character, '\0' };
 	int ret = ssfn_render(&ctx, &dst, s);
@@ -99,7 +100,7 @@ void clear_buffer() {
 	set_cursor_position(0, 1);
 }
 
-void print(char *s) {
+void print(const char *s) {
 	int x = position[0];
 	int y = position[1];
 

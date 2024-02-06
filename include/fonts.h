@@ -3,7 +3,7 @@
 
 #include "ssfn.h"
 
-void print(char *s);
+void print(const char *s);
 int load_font(char *s, efi_gop_t *gop);
 void free_font();
 ssfn_t* get_ctx();
@@ -16,6 +16,5 @@ void set_fg(int hex);
 void info_prefix();
 void clear_buffer();
 void init_buffer();
-
 
 #endif
