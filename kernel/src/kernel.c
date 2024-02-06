@@ -31,7 +31,7 @@ static inline void err_prefixf() {
 
 int kernel_main(graphics_information* gop) {
 
-	printf("wadawdawd");
+	info_prefixf();
 	printf("loading font\n");
 
 	int e;

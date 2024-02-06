@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
 	}
 
 	ST->ConOut->SetCursorPosition(ST->ConOut, 0, selected);
-	gop->QueryMode(gop, selected+1, &isiz, &gop_info);
+	gop->QueryMode(gop, selected, &isiz, &gop_info);
 	ST->ConOut->SetAttribute(ST->ConOut, EFI_BACKGROUND_LIGHTGRAY | EFI_BLACK);
 	printf("  %4d   %4d\n", gop_info->HorizontalResolution, gop_info->VerticalResolution);
 	ST->ConOut->SetAttribute(ST->ConOut, EFI_BACKGROUND_BLACK | EFI_LIGHTGRAY);
@@ -351,9 +351,7 @@ int main(int argc, char **argv) {
 	// int return_code = kernel_main(&g);
 	// printf("kernel returned %d\n", return_code);
 
-	printf("awdawdwadawd");
 	kernel_main(&g);
-	printf("awdawd");
 
 	poll();
 
