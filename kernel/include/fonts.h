@@ -2,9 +2,10 @@
 #define FONTS_H
 
 #include "ssfn.h"
+#include <uefi.h>
 
 void print(const char *s);
-int load_font(char *s, efi_gop_t *gop);
+int load_font(char *s, efi_physical_address_t framebuffer_base, uint32_t pixels_per_scanline, uint32_t width, uint32_t height);
 void free_font();
 ssfn_t* get_ctx();
 void set_cursor_position(int x, int y);

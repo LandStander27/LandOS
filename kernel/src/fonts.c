@@ -23,8 +23,6 @@ typedef struct {
 
 static text_entry_t* terminal_data;
 
-efi_gop_t *graphics_p;
-
 int terminal_width;
 int terminal_height;
 
@@ -56,7 +54,7 @@ int putc(int x, int y, char character, uint32_t fg_color, uint32_t bg_color) {
 }
 
 void rerender() {
-	draw_rectangle(0, 0, graphics_p->Mode->Information->HorizontalResolution, graphics_p->Mode->Information->VerticalResolution, 0, 0, 0);
+	draw_rectangle(0, 0, terminal_width*CHAR_WIDTH, terminal_height*CHAR_HEIGHT, 0, 0, 0);
 	for (int x = 0; x < terminal_width; x++) {
 		for (int y = 0; y < terminal_height; y++) {
 			renderc(x, y);
@@ -91,7 +89,7 @@ int* get_cursor_position() {
 }
 
 void clear_buffer() {
-	draw_rectangle(0, 0, graphics_p->Mode->Information->HorizontalResolution, graphics_p->Mode->Information->VerticalResolution, 0, 0, 0);
+	draw_rectangle(0, 0, terminal_width*CHAR_WIDTH, terminal_height*CHAR_HEIGHT, 0, 0, 0);
 	for (int i = 0; i < terminal_width*terminal_height; i++) {
 		terminal_data[i].character = 0x00;
 		terminal_data[i].fg_color = 0x00;
@@ -124,7 +122,7 @@ void print(const char *s) {
 	position[1] = y;
 }
 
-int load_font(char *s, efi_gop_t *gop) {
+int load_font(char *s, efi_physical_address_t framebuffer_base, uint32_t pixels_per_scanline, uint32_t width, uint32_t height) {
 	FILE *f;
     long int size;
 
@@ -143,18 +141,17 @@ int load_font(char *s, efi_gop_t *gop) {
 	fclose(f);
 	ssfn_load(&ctx, font);
 
-	dst.ptr = (unsigned char*)gop->Mode->FrameBufferBase;
-	dst.w = gop->Mode->Information->HorizontalResolution;
-	dst.h = gop->Mode->Information->VerticalResolution;
-	dst.p = sizeof(unsigned int) * gop->Mode->Information->PixelsPerScanLine;
+	dst.ptr = (unsigned char*)framebuffer_base;
+	dst.w = width;
+	dst.h = height;
+	dst.p = sizeof(unsigned int) * pixels_per_scanline;
 	dst.fg = 0xFFFFFFFF;
 
 	ssfn_select(&ctx, SSFN_FAMILY_ANY, NULL, SSFN_STYLE_REGULAR | SSFN_STYLE_NOCACHE, 20);
 	position[1] = ctx.size;
 
-	graphics_p = gop;
-	terminal_width = gop->Mode->Information->HorizontalResolution/CHAR_WIDTH;
-	terminal_height = gop->Mode->Information->VerticalResolution/CHAR_HEIGHT;
+	terminal_width = width/CHAR_WIDTH;
+	terminal_height = height/CHAR_HEIGHT;
 	return 0;
 }
 
