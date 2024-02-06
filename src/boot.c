@@ -178,7 +178,8 @@ int main(int argc, char **argv) {
 	}
 
 	info_prefix();
-	print("font loaded\n");
+	print("allocating screen buffer\n");
+	init_buffer();
 	info_prefix();
 	print("loading shell\n");
 
@@ -192,24 +193,27 @@ int main(int argc, char **argv) {
 			}
 		}
 	}
+	clear_buffer();
 
-	set_cursor_position(0, get_ctx()->size);
+	set_cursor_position(0, 1);
 	int code = shell();
 	usleep(250 ms);
 
 	info_prefix();
-	print("unallocating font\n");
-	usleep(250 ms);
+	print("unallocating screen data\n");
+	usleep(500 ms);
 	free_font();
 
-	info_prefix();
-	print("executing instruction\n");
-	usleep(250 ms);
+	info_prefixf();
+	printf("executing instruction\n");
+	usleep(500 ms);
 
 	if (code == 1) {
 		ST->RuntimeServices->ResetSystem(EfiResetShutdown, EFI_SUCCESS, 0, 0);
 	} else if (code == 2) {
 		ST->RuntimeServices->ResetSystem(EfiResetCold, EFI_SUCCESS, 0, 0);
+	} else if (code == 3) {
+		ST->RuntimeServices->ResetSystem(EfiResetWarm, EFI_SUCCESS, 0, 0);
 	}
 
 	poll();

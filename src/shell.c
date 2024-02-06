@@ -1,11 +1,10 @@
 #include <uefi.h>
 #include "fonts.h"
 #include <stdbool.h>
-#include "graphics.h"
 
 int shell() {
 
-	int position[2] = { 0, 0 };
+	int* position = malloc(sizeof(int)*2);
 
 	efi_status_t status;
 	efi_input_key_t key;
@@ -14,13 +13,13 @@ int shell() {
 	print("LandOS\n");
 	set_fg(0xFFFFFFFF);
 
+	position = get_cursor_position();
+
 	while (true) {
 
 		print("> _");
 
-		get_cursor_position(position);
-		set_cursor_position(position[0]-char_width(), position[1]);
-		get_cursor_position(position);
+		set_cursor_position(position[0]-1, position[1]);
 
 		char* cmd = malloc(128);
 		int cmd_len = 0;
@@ -33,9 +32,7 @@ int shell() {
 				print(s);
 				print("_");
 
-				get_cursor_position(position);
-				set_cursor_position(position[0]-char_width(), position[1]);
-				get_cursor_position(position);
+				set_cursor_position(position[0]-1, position[1]);
 				cmd[cmd_len] = s[0];
 				cmd_len++;
 			} else if (key.UnicodeChar == 0x0D) {
@@ -46,14 +43,11 @@ int shell() {
 			} else if (key.UnicodeChar == 0x08 && cmd_len > 0) {
 				cmd_len--;
 				clear_char(position[0], position[1]);
-				set_cursor_position(position[0]-char_width(), position[1]);
-				get_cursor_position(position);
+				set_cursor_position(position[0]-1, position[1]);
 				clear_char(position[0], position[1]);
 
 				print("_");
-				get_cursor_position(position);
-				set_cursor_position(position[0]-char_width(), position[1]);
-				get_cursor_position(position);
+				set_cursor_position(position[0]-1, position[1]);
 			}
 		}
 
@@ -68,17 +62,24 @@ int shell() {
 		char* token = malloc(64);
 		token = strtok(cmd, " ");
 		if (strcmp(token, "shutdown") == 0) {
-			set_cursor_position(0, get_ctx()->size);
-			clear_screen();
+			clear_buffer();
 			info_prefix();
 			print("shutting down\n");
 			return 1;
 		} else if (strcmp(token, "reboot") == 0) {
-			set_cursor_position(0, get_ctx()->size);
-			clear_screen();
+			clear_buffer();
 			info_prefix();
-			print("rebooting\n");
-			return 2;
+
+			token = strtok(NULL, " ");
+			if (token == NULL || strcmp(token, "cold") == 0) {
+				print("cold rebooting\n");
+				return 2;
+			} else if (strcmp(token, "warm") == 0) {
+				print("warm rebooting\n");
+				return 3;
+			} else {
+				print("invalid argument\n");
+			}
 		} else if (strcmp(token, "echo") == 0) {
 			char s[2];
 			for (int i = 5; i < strlen(cmd_cloned); i++) {
@@ -88,9 +89,9 @@ int shell() {
 			}
 			print("\n");
 		} else if (strcmp(token, "help") == 0) {
-			print("help shows this menu\n");
-			print("shutdown   shuts down the system\n");
-			print("reboot     reboots the system\n");
+			print("help                   shows this menu\n");
+			print("shutdown               shuts down the system\n");
+			print("reboot (cold/warm)     reboots the system, cold reboot by default\n");
 		}
 
 		free(token);

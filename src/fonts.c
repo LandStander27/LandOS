@@ -10,43 +10,115 @@ ssfn_t ctx = {0};
 
 int position[2] = {0, 0};
 
+#define CHAR_WIDTH 10
+#define CHAR_HEIGHT 20
+
 ssfn_font_t *font;
 
-int char_width() {
-	int w;
-	int h;
-	int left;
-	int top;
+typedef struct {
+    char character;
+    uint32_t fg_color;
+	uint32_t bg_color;
+} text_entry_t;
 
-	ssfn_bbox(&ctx, " ", &w, &h, &left, &top);
-	return w;
-}
+static text_entry_t* terminal_data;
 
-void print(char *s) {
+efi_gop_t *graphics_p;
 
-	int w;
-	int h;
-	int left;
-	int top;
+int terminal_width;
+int terminal_height;
 
-	ssfn_bbox(&ctx, " ", &w, &h, &left, &top);
+int renderc(int x, int y) {
+	if (terminal_data[y*terminal_width+x].character == 0x00) {
+		return 0;
+	}
+	dst.x = x*CHAR_WIDTH+5;
+	dst.y = y*CHAR_HEIGHT;
 
-	int ret;
-	dst.x = position[0]+5;
-	dst.y = position[1];
-	while((ret = ssfn_render(&ctx, &dst, s)) > 0) {
-		if (*s == '\n') {
-			position[1] += ctx.size;
-			position[0] = 0;
-		} else {
-			position[0] += char_width();
-		}
-		s += ret;
+	char s[2] = { terminal_data[y*terminal_width+x].character, '\0' };
+	int ret = ssfn_render(&ctx, &dst, s);
+	if (ret < 0) {
+		return ret;
 	}
 
+	return 0;
+}
+
+int putc(int x, int y, char character, uint32_t fg_color, uint32_t bg_color) {
+
+	terminal_data[y*terminal_width+x].character = character;
+	terminal_data[y*terminal_width+x].fg_color = fg_color;
+	terminal_data[y*terminal_width+x].bg_color = bg_color;
+
+	renderc(x, y);
+
+}
+
+void rerender() {
+	draw_rectangle(0, 0, graphics_p->Mode->Information->HorizontalResolution, graphics_p->Mode->Information->VerticalResolution, 0, 0, 0);
+	for (int x = 0; x < terminal_width; x++) {
+		for (int y = 0; y < terminal_height; y++) {
+			renderc(x, y);
+		}
+	}
+}
+
+void scroll(int lines) {
+	if (position[1] > 0+lines) {
+		position[1] -= lines-1;
+	}
+	for (int i = 0; i < terminal_width*(terminal_height-lines); i++) {
+		terminal_data[i].character = terminal_data[i+terminal_width*lines].character;
+		terminal_data[i].fg_color = terminal_data[i+terminal_width*lines].fg_color;
+		terminal_data[i].bg_color = terminal_data[i+terminal_width*lines].bg_color;
+	}
+	for (int i = terminal_width*(terminal_height-lines); i < terminal_width*terminal_height; i++) {
+		terminal_data[i].character = 0x00;
+		terminal_data[i].fg_color = 0x00;
+		terminal_data[i].bg_color = 0x00;
+	}
+	rerender();
 }
 
 void set_cursor_position(int x, int y) {
+	position[0] = x;
+	position[1] = y;
+}
+
+int* get_cursor_position() {
+	return position;
+}
+
+void clear_buffer() {
+	draw_rectangle(0, 0, graphics_p->Mode->Information->HorizontalResolution, graphics_p->Mode->Information->VerticalResolution, 0, 0, 0);
+	for (int i = 0; i < terminal_width*terminal_height; i++) {
+		terminal_data[i].character = 0x00;
+		terminal_data[i].fg_color = 0x00;
+		terminal_data[i].bg_color = 0x00;
+	}
+	set_cursor_position(0, 1);
+}
+
+void print(char *s) {
+	int x = position[0];
+	int y = position[1];
+
+	for (int i = 0; i < strlen(s); i++) {
+		if (s[i] == '\n') {
+			if (y == terminal_height-1) {
+				scroll(terminal_width/5);
+				x = 0;
+				y = position[1];
+				continue;
+			}
+			x = 0;
+			y++;
+			continue;
+		}
+		putc(x, y, s[i], dst.fg, dst.bg);
+		x += 1;
+	}
+
 	position[0] = x;
 	position[1] = y;
 }
@@ -76,66 +148,38 @@ int load_font(char *s, efi_gop_t *gop) {
 	dst.p = sizeof(unsigned int) * gop->Mode->Information->PixelsPerScanLine;
 	dst.fg = 0xFFFFFFFF;
 
-	ssfn_select(&ctx, SSFN_FAMILY_ANY, NULL, SSFN_STYLE_REGULAR | SSFN_STYLE_NOCACHE, max(gop->Mode->Information->VerticalResolution/55, 20));
+	ssfn_select(&ctx, SSFN_FAMILY_ANY, NULL, SSFN_STYLE_REGULAR | SSFN_STYLE_NOCACHE, 20);
 	position[1] = ctx.size;
 
+	graphics_p = gop;
+	terminal_width = gop->Mode->Information->HorizontalResolution/CHAR_WIDTH;
+	terminal_height = gop->Mode->Information->VerticalResolution/CHAR_HEIGHT;
 	return 0;
+}
 
+void init_buffer() {
+	terminal_data = malloc(sizeof(text_entry_t)*terminal_width*terminal_height);
 }
 
 void free_font() {
     ssfn_free(&ctx);
     free(font);
+	free(terminal_data);
 }
 
 ssfn_t* get_ctx() {
 	return &ctx;
 }
 
-void get_cursor_position(int* pos) {
-	pos[0] = position[0];
-	pos[1] = position[1];
-}
-
 void clear_char(int x, int y) {
+	int real_x = x*CHAR_WIDTH;
+	int real_y = (y-1)*CHAR_HEIGHT;
+	draw_rectangle(real_x+5, real_y+3, CHAR_WIDTH, CHAR_HEIGHT, 0, 0, 0);
 
-	int w;
-	int h;
-	int left;
-	int top;
-
-	ssfn_bbox(&ctx, " ", &w, &h, &left, &top);
-
-	draw_rectangle(x+4, y-ctx.size+4, w, h, 0, 0, 0);
-
-}
-
-void convert_to_pixels(const int* src, int* dst) {
-
-	int w;
-	int h;
-	int left;
-	int top;
-
-	ssfn_bbox(&ctx, " ", &w, &h, &left, &top);
-
-	dst[0] = src[0]*w;
-	dst[1] = src[1]*ctx.size;
-
-}
-
-void convert_to_coords(const int* src, int* dst) {
-
-	int w;
-	int h;
-	int left;
-	int top;
-
-	ssfn_bbox(&ctx, " ", &w, &h, &left, &top);
-
-	dst[0] = src[0]/w;
-	dst[1] = src[1]/ctx.size;
-
+	terminal_data[y*terminal_width+x].character = 0x00;
+	terminal_data[y*terminal_width+x].fg_color = 0x00;
+	terminal_data[y*terminal_width+x].bg_color = 0x00;
+	// putc(x, y, '█', 0xFF000000, 0xFF000000);
 }
 
 void set_fg(int hex) {
