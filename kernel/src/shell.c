@@ -2,8 +2,10 @@
 #include "fonts.h"
 #include <stdbool.h>
 #include "string.h"
+#include "mouse.h"
+#include "graphics.h"
 
-int shell() {
+int shell(int screen_width, int screen_height) {
 
 	int* position = malloc(sizeof(int)*2);
 
@@ -57,6 +59,9 @@ int shell() {
 				print("_");
 				set_cursor_position(position[0]-1, position[1]);
 			}
+
+			usleep(10);
+
 		}
 
 		if (cmd_len == 0) {
@@ -168,6 +173,8 @@ int shell() {
 					}
 				}
 			}
+		} else if (strcmp(token, "clear") == 0) {
+			clear_buffer();
 		} else if (strcmp(token, "help") == 0) {
 			print("help                shows this menu\n");
 			print("shutdown            shuts down the system\n");
@@ -175,6 +182,7 @@ int shell() {
 			print("getkey              get info about a keypress (for debugging)\n");
 			print("ls                  lists current directory\n");
 			print("cd (directory)      change current directory\n");
+			print("clear               clear the screen\n");
 		}
 
 		free(token);

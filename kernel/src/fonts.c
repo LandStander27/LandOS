@@ -191,3 +191,11 @@ void info_prefix() {
 	set_fg(0xFFFFFFFF);
 	print("] ");
 }
+
+void err_prefix() {
+	printf("[");
+	set_fg(0xFFFF0000);
+	printf("ERR ");
+	set_fg(0xFFFFFFFF);
+	printf("] ");
+}

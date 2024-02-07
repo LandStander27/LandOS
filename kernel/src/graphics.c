@@ -12,6 +12,12 @@ void put_pixel(int x, int y, int r, int g, int b) {
 	*((uint32_t*)(base + 4 * per_scan_line * y + 4 * x + 3)) = 255;
 }
 
+void get_pixel(int x, int y, int *r, int *g, int *b) {
+	*b = *((uint32_t*)(base + 4 * per_scan_line * y + 4 * x));
+	*g = *((uint32_t*)(base + 4 * per_scan_line * y + 4 * x + 1));
+	*r = *((uint32_t*)(base + 4 * per_scan_line * y + 4 * x + 2));
+}
+
 void draw_rectangle(int x, int y, int w, int h, int r, int g, int b) {
 	for (int i = x; i < x+w; i++) {
 		for (int j = y; j < y+h; j++) {

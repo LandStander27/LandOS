@@ -4,6 +4,12 @@
 #include "ssfn.h"
 #include <uefi.h>
 
+typedef struct {
+    char character;
+    uint32_t fg_color;
+	uint32_t bg_color;
+} text_entry_t;
+
 void print(const char *s);
 int load_font(char *s, efi_physical_address_t framebuffer_base, uint32_t pixels_per_scanline, uint32_t width, uint32_t height);
 void free_font();
@@ -15,6 +21,7 @@ void clear_char(int x, int y);
 // void convert_to_coords(const int* src, int* dst);
 void set_fg(int hex);
 void info_prefix();
+void err_prefix();
 void clear_buffer();
 void init_buffer();
 

@@ -56,8 +56,7 @@ int kernel_main(graphics_information* gop) {
 	usleep(500 ms);
 	clear_buffer();
 
-	set_cursor_position(0, 1);
-	int code = shell();
+	int code = shell(gop->width, gop->height);
 	usleep(250 ms);
 
 	info_prefix();
@@ -65,7 +64,7 @@ int kernel_main(graphics_information* gop) {
 	usleep(500 ms);
 	free_font();
 
-	info_prefix();
+	info_prefixf();
 	printf("executing instruction\n");
 	usleep(500 ms);
 
