@@ -5,6 +5,36 @@
 #include "mouse.h"
 #include "graphics.h"
 
+int rmtree(char* path) {
+	DIR *d;
+	struct dirent *de;
+	if ((d = opendir(path))) {
+		while ((de = readdir(d)) != NULL) {
+			if (strcmp(de->d_name, "..") == 0 || strcmp(de->d_name, ".") == 0) {
+				continue;
+			}
+			char s[262];
+			strcpy(s, path);
+			if (strlen(s) != 1) {
+				strcat(s, "\\");
+			}
+			strcat(s, de->d_name);
+			if (de->d_type == DT_DIR) {
+				if (rmtree(s) != 0) {
+					return -1;
+				}
+			} else {
+				if (remove(s) != 0) {
+					return -1;
+				}
+			}
+		}
+	} else {
+		return -1;
+	}
+	return rmdir((wchar_t*)path);
+}
+
 int shell(int screen_width, int screen_height) {
 
 	int* position = malloc(sizeof(int)*2);
@@ -121,7 +151,6 @@ int shell(int screen_width, int screen_height) {
 			DIR *d;
 			struct dirent *de;
 			if ((d = opendir(current_path))) {
-				char s[262];
 				while ((de = readdir(d)) != NULL) {
 					print(de->d_name);
 					print("\n");
@@ -182,7 +211,9 @@ int shell(int screen_width, int screen_height) {
 			} else {
 				char *path = malloc(sizeof(char)*262);
 				strcpy(path, current_path);
-				strcat(path, "\\");
+				if (strlen(path) != 1) {
+					strcat(path, "\\");
+				}
 				strcat(path, token);
 				FILE *f;
 				if ((f = fopen(path, "r"))) {
@@ -211,6 +242,81 @@ int shell(int screen_width, int screen_height) {
 				free(path);
 				fclose(f);
 			}
+		} else if (strcmp(token, "mkdir") == 0) {
+			token = strtok(NULL, " ");
+			if (token == NULL) {
+				print("invalid usage\nmkdir (directory)\n");
+			} else {
+				char *path = malloc(sizeof(char)*262);
+				strcpy(path, current_path);
+				if (strlen(path) != 1) {
+					strcat(path, "\\");
+				}
+				strcat(path, token);
+
+				if (mkdir(path, 0) != 0) {
+					print("could not create directory\n");
+				}
+
+				free(path);
+			}
+		} else if (strcmp(token, "rm") == 0) {
+			token = strtok(NULL, " ");
+			if (token == NULL) {
+				print("invalid usage\nrm (file)\n");
+			} else {
+				char *path = malloc(sizeof(char)*262);
+				strcpy(path, current_path);
+				if (strlen(path) != 1) {
+					strcat(path, "\\");
+				}
+				strcat(path, token);
+
+				if (remove(path) != 0) {
+					print("could not delete file\n");
+				}
+
+				free(path);
+			}
+		} else if (strcmp(token, "rmdir") == 0) {
+			token = strtok(NULL, " ");
+			if (token == NULL) {
+				print("invalid usage\nrmdir (directory)\n");
+			} else {
+				char *path = malloc(sizeof(char)*262);
+				strcpy(path, current_path);
+				if (strlen(path) != 1) {
+					strcat(path, "\\");
+				}
+				strcat(path, token);
+
+				if (rmtree(path) != 0) {
+					print("could not delete directory\n");
+				}
+
+				free(path);
+			}
+		} else if (strcmp(token, "touch") == 0) {
+			token = strtok(NULL, " ");
+			if (token == NULL) {
+				print("invalid usage\ntouch (file)\n");
+			} else {
+				char *path = malloc(sizeof(char)*262);
+				strcpy(path, current_path);
+				if (strlen(path) != 1) {
+					strcat(path, "\\");
+				}
+				strcat(path, token);
+
+				FILE *f = fopen(path, "w");
+				if (!f) {
+					print("could not create file\n");
+				} else {
+					fclose(f);
+				}
+
+				free(path);
+			}
 		} else if (strcmp(token, "help") == 0) {
 			print("help                shows this menu\n");
 			print("shutdown            shuts down the system\n");
@@ -220,12 +326,15 @@ int shell(int screen_width, int screen_height) {
 			print("cd (directory)      change current directory\n");
 			print("clear               clear the screen\n");
 			print("cat (file)          outputs contents of file\n");
+			print("mkdir (directory)   create a directory\n");
+			print("rm (file)           deletes a file\n");
+			print("rmdir (directory)   deletes a directory recursively\n");
+			print("touch (file)        creates a file\n");
 		}
 
 		free(token);
 		free(cmd);
 		free(cmd_cloned);
-		print("\n");
 
 	}
 
