@@ -31,7 +31,7 @@ int shell(int screen_width, int screen_height) {
 
 		set_cursor_position(position[0]-1, position[1]);
 
-		char* cmd = malloc(128);
+		char* cmd = malloc(sizeof(char)*128);
 		int cmd_len = 0;
 		while (true) {
 			status = ST->ConIn->ReadKeyStroke(ST->ConIn, &key);
@@ -175,6 +175,42 @@ int shell(int screen_width, int screen_height) {
 			}
 		} else if (strcmp(token, "clear") == 0) {
 			clear_buffer();
+		} else if (strcmp(token, "cat") == 0) {
+			token = strtok(NULL, " ");
+			if (token == NULL) {
+				print("invalid usage\ncat (file)\n");
+			} else {
+				char *path = malloc(sizeof(char)*262);
+				strcpy(path, current_path);
+				strcat(path, "\\");
+				strcat(path, token);
+				FILE *f;
+				if ((f = fopen(path, "r"))) {
+					fseek(f, 0, SEEK_END);
+					int size = ftell(f);
+					fseek(f, 0, SEEK_SET);
+					if (size > 1024) {
+						print("file too big\n");
+					} else {
+						char *buffer = malloc(1025);
+
+						if (!buffer) {
+							print("unable to allocate memory for file data\n");
+						} else {
+							fread(buffer, size, 1, f);
+							buffer[size] = '\0';
+							print(buffer);
+							print("\n");
+						}
+
+						free(buffer);
+					}
+				} else {
+					print("could not open file\n");
+				}
+				free(path);
+				fclose(f);
+			}
 		} else if (strcmp(token, "help") == 0) {
 			print("help                shows this menu\n");
 			print("shutdown            shuts down the system\n");
@@ -183,6 +219,7 @@ int shell(int screen_width, int screen_height) {
 			print("ls                  lists current directory\n");
 			print("cd (directory)      change current directory\n");
 			print("clear               clear the screen\n");
+			print("cat (file)          outputs contents of file\n");
 		}
 
 		free(token);

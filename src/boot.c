@@ -345,9 +345,9 @@ int main(int argc, char **argv) {
 	// int (*kernel_main)(graphics_information*) = ((__attribute__((sysv_abi)) int (*)(graphics_information*) ) entry);
 	graphics_information g;
 	g.framebuffer_base = gop->Mode->FrameBufferBase;
-	g.width = gop->Mode->Information->VerticalResolution;
-	g.height = gop->Mode->Information->HorizontalResolution;
-	g.pixels_per_scanline = gop->Mode->Information->PixelsPerScanLine;
+	g.width = gop_info->HorizontalResolution;
+	g.height = gop_info->VerticalResolution;
+	g.pixels_per_scanline = gop_info->PixelsPerScanLine;
 	// int return_code = kernel_main(&g);
 	// printf("kernel returned %d\n", return_code);
 

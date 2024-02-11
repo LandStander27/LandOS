@@ -34,8 +34,7 @@ int renderc(int x, int y) {
 	dst.y = y*CHAR_HEIGHT;
 	dst.fg = terminal_data[y*terminal_width+x].fg_color;
 
-	char s[2] = { terminal_data[y*terminal_width+x].character, '\0' };
-	int ret = ssfn_render(&ctx, &dst, s);
+	int ret = ssfn_render(&ctx, &dst, (char[2]){ terminal_data[y*terminal_width+x].character, '\0' });
 	if (ret < 0) {
 		return ret;
 	}
@@ -55,15 +54,15 @@ int putc(int x, int y, char character, uint32_t fg_color, uint32_t bg_color) {
 
 void rerender() {
 	draw_rectangle(0, 0, terminal_width*CHAR_WIDTH, terminal_height*CHAR_HEIGHT, 0, 0, 0);
-	for (int x = 0; x < terminal_width; x++) {
-		for (int y = 0; y < terminal_height; y++) {
+	for (int y = 0; y < terminal_height; y++) {
+		for (int x = 0; x < terminal_width; x++) {
 			renderc(x, y);
 		}
 	}
 }
 
 void scroll(int lines) {
-	if (position[1] > 0+lines) {
+	if (position[1] > lines) {
 		position[1] -= lines-1;
 	}
 	for (int i = 0; i < terminal_width*(terminal_height-lines); i++) {
@@ -105,7 +104,9 @@ void print(const char *s) {
 	for (int i = 0; i < strlen(s); i++) {
 		if (s[i] == '\n') {
 			if (y == terminal_height-1) {
-				scroll(terminal_width/5);
+				position[0] = x;
+				position[1] = y;
+				scroll(terminal_height/2);
 				x = 0;
 				y = position[1];
 				continue;
